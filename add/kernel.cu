@@ -28,23 +28,37 @@ __global__ void add(int n, float* x, float* y) {
 	}
 }
 
+// Moves the initialization of the arrays to the GPU.
+// This reduces page fault issues when performing the
+// add kernel
+__global__ void init(int n, float* x, float* y) {
+	int index = threadIdx.x + blockIdx.x * blockDim.x;
+	int stride = blockDim.x * gridDim.x;
+	for (int i = index; i < n; i += stride) {
+		x[i] = 1.0f;
+		y[i] = 2.0f;
+	}
+}
+
 int main()
 {
 	int N = 1 << 20; // 1M elements
 	float* x;//= new float[N]; This is how we do it for the CPU
 	float* y;//= new float[N];
 
-			 // To make these variables in Unified Memory, which is
-			 // memory that can be accessed by all CPUs and GPUs on
-			 // the system, we use cudaMallocManaged
+	// To make these variables in Unified Memory, which is
+	// memory that can be accessed by all CPUs and GPUs on
+	// the system, we use cudaMallocManaged
 	cudaMallocManaged(&x, N * sizeof(float));
 	cudaMallocManaged(&y, N * sizeof(float));
 
-	// initialize arrays
-	for (int i = 0; i < N; i++) {
-		x[i] = 1.0f;
-		y[i] = 2.0f;
-	}
+	// The following code is what I would use if I was prefetching:
+	/*
+	int device = -1;
+	cudaGetDevice(&device);
+	cudaMemPrefetchAsync(x, N * sizeof(float), device, NULL);
+	cudaMemPrefetchAsync(y, N * sizeof(float), device, NULL);
+	*/
 
 	// A function the GPU can run is called a kernel in CUDA
 	// This function is the kernel in this example
@@ -58,9 +72,19 @@ int main()
 	// block.
 	int blockSize = 256;
 	int numBlocks = (N + blockSize - 1) / blockSize;
+	// initialize the arrays. I've decided to do this on the GPU
+	// rather than prefetch. Either way, I would have prevented 
+	// losing performance to page faults.
+	init << <numBlocks, blockSize >> > (N, x, y);
 	add<<<numBlocks, blockSize>>>(N, x, y);
 
-	// wait for GPU to finish before accessing on CPU
+	// wait for GPU to finish before accessing on CPU. With old GPUs,
+	// forgetting this step would likely result in a segmentation fault.
+	// If using a Pascal-type GPU, page faults are supported, so the CPUs,
+	// and GPUs can simultaneously access the memory. You still need this
+	// call on a Pascal GPU to avoid reading invalid data (race condition)
+	// A call to this function is also necessary to measure kernel execution
+	// time as opposed to kernel launch time.
 	cudaDeviceSynchronize();
 
 	// Check for errors (all values should be 3.0f(
