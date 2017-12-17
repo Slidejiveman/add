@@ -72,11 +72,21 @@ int main()
 	// block.
 	int blockSize = 256;
 	int numBlocks = (N + blockSize - 1) / blockSize;
+
+	// Create events to allow performance measuring
+	cudaEvent_t start, stop;
+	cudaEventCreate(&start);
+	cudaEventCreate(&stop);
+
 	// initialize the arrays. I've decided to do this on the GPU
 	// rather than prefetch. Either way, I would have prevented 
 	// losing performance to page faults.
 	init << <numBlocks, blockSize >> > (N, x, y);
+
+	// time the main calculation
+	cudaEventRecord(start);
 	add<<<numBlocks, blockSize>>>(N, x, y);
+	cudaEventRecord(stop);
 
 	// wait for GPU to finish before accessing on CPU. With old GPUs,
 	// forgetting this step would likely result in a segmentation fault.
@@ -85,14 +95,23 @@ int main()
 	// call on a Pascal GPU to avoid reading invalid data (race condition)
 	// A call to this function is also necessary to measure kernel execution
 	// time as opposed to kernel launch time.
-	cudaDeviceSynchronize();
+	//cudaDeviceSynchronize();
+
+	// This method blocks execution until an event
+	// is recorded!
+	cudaEventSynchronize(stop);
+
+	// Collect the elapsed time
+	float milliseconds = 0;
+	cudaEventElapsedTime(&milliseconds, start, stop);
 
 	// Check for errors (all values should be 3.0f(
 	float maxError = 0.0f;
 	for (int i = 0; i < N; i++) {
 		maxError = fmax(maxError, fabs(y[i] - 3.0f));
 	}
-	std::cout << "Max error: " << maxError << std::endl;
+	std::cout << "Max error: " << maxError << std::endl
+		<< "Elapsed Time: " << milliseconds << std::endl;
 
 	// Free memory
 	//delete[] x; This is how we do it on a CPU
