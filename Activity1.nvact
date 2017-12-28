@@ -1,5 +1,5 @@
 ﻿<Model DefinitionId="3a3ca3f4-7ba7-4c09-a182-6ba59bf12599" DisplayName="Analysis Activity" xmlns="clr-namespace:Ark.PropertyModel;assembly=Ark">
-    <Property Name="Application" Value="C:\Users\rdnot\Documents\Visual Studio 2017\Projects\add\x64\Debug\add.exe" />
+    <Property Name="Application" Value="C:\Users\rdnot\Documents\Visual Studio 2017\Projects\cuda_memory_copy\x64\Debug\cuda_memory_copy.exe" />
     <Property Name="EnableCudaApiContextAttachDetach" Value="True" />
     <Property Name="EnableCudaApiContextManagement" Value="True" />
     <Property Name="EnableCudaApiD3D10Interop" Value="True" />
@@ -119,6 +119,5 @@
     <Property Name="EnableToolsExtResourceNaming" Value="True" />
     <Property Name="EnableToolsExtStartEndRangeTrace" Value="True" />
     <Property Name="ExtensionsToSynchronize" Value="*;" />
-    <Property Name="ProfileOptionEnableKernelCaptureLimits" Value="True" />
-    <Property Name="WorkingDirectory" Value="C:\Users\rdnot\Documents\Visual Studio 2017\Projects\add\add\" />
+    <Property Name="WorkingDirectory" Value="C:\Users\rdnot\Documents\Visual Studio 2017\Projects\cuda_memory_copy\cuda_memory_copy\" />
 </Model>

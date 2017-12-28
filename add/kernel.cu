@@ -81,7 +81,22 @@ int main()
 	// initialize the arrays. I've decided to do this on the GPU
 	// rather than prefetch. Either way, I would have prevented 
 	// losing performance to page faults.
-	init << <numBlocks, blockSize >> > (N, x, y);
+	init <<<numBlocks, blockSize >>> (N, x, y);
+
+	// add syncrhonous error handling.
+	// add asynchronous error handling. Note, this is not something
+	// you want to add in the release build because it will force
+	// the GPU to finish before the CPU can continue
+	// note: added this to the init kernel since I was timing the
+	// main calculation kernel, add
+	cudaError_t errSync = cudaGetLastError();
+	cudaError_t errAsync = cudaDeviceSynchronize();
+	if (errSync != cudaSuccess) {
+		printf("Sync kernel error: %s\n", cudaGetErrorString(errSync));
+	}
+	if (errAsync != cudaSuccess) {
+		printf("Async kernel error: %s\n", cudaGetErrorString(errAsync));
+	}
 
 	// time the main calculation
 	cudaEventRecord(start);
